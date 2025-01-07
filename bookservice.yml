@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: depbook
+  labels:
+    app: deployment
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  minReadySeconds: 10
+  replicas: 1
+  selector:
+    matchLabels:
+      app: servicebook
+  template:
+    metadata:
+      name: bookpod
+      labels:
+        app: servicebook
+    spec:
+      containers:
+        - name: booksv
+          image: shaikkhajaibrahim/libbookssvc:1.0
+          envFrom:
+            - secretRef:
+               name: booksvc-secrets
+          resources:
+            requests:
+               memory: 64M
+               cpu: 100m
+            limits:
+               memory: 256M
+               cpu: 500m
+          ports:
+            - containerPort: 8000
+          livenessProbe:
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+            tcpSocket:
+              port: 8000
+          readinessProbe:
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+            httpGet:
+              path: /docs
+              port: 8000
+          startupProbe:
+            initialDelaySeconds: 2
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - ps aux | grep uvicorn
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: booksrc
+spec:
+  selector:
+     app: servicebook
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000   

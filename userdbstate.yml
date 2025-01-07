@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dbsvc
+spec:
+  selector:
+    app: userdb
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: userdb
+spec:
+  minReadySeconds: 5
+  replicas: 1
+  selector:
+    matchLabels: 
+      app: userdb
+  serviceName: dbsvc
+  template:
+    metadata:
+      name: poduser
+      labels:
+        app: userdb 
+    spec:
+      containers:
+        - name: usercont
+          image: postgres:15-alpine
+          envFrom:
+            - secretRef:
+                name: userdb-secrets
+          ports: 
+            - containerPort: 5432
+          resources:
+            requests:
+              memory: 64M
+              cpu: 100m
+            limits:
+              memory: 256M
+              cpu: 500m
+          volumeMounts:
+            - name: uservol
+              mountPath: /var/lib/postgresql/data
+              subPath: data
+  volumeClaimTemplates:
+    - metadata:
+        name: uservol
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: managed
+        resources:
+          requests:
+            storage: 1Gi
+      
+

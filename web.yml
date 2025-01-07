@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webdeploy
+  labels:
+    app: webstoredep
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  minReadySeconds: 5
+  replicas: 1
+  selector:
+    matchLabels:
+      app: libraryweb
+  template:
+    metadata:
+      name: webpod
+      labels:
+        app: libraryweb
+    spec:
+      containers:
+        - name: web
+          image:  shaikkhajaibrahim/libwebstore:1.0
+          env:
+            - name: REACT_APP_BACKEND_API_URL
+              value: http://libservice:8000/api/v1 
+            - name: REACT_APP_BOOKS_API_URL
+              value:  http://libservice:8000/api/v1/books
+            - name: REACT_APP_USERS_API_URL
+              value: http://libservice:8000/api/v1/users
+          resources:
+            requests:
+               memory: 24M
+               cpu: 100m
+            limits:
+               memory: 128M
+               cpu: 500m
+          ports:
+            - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: libservice
+spec:
+  selector:
+     app: libraryweb
+  type: LoadBalancer  
+  ports:
+  - port: 80
+    targetPort: 3000
+
+
+
+
+        
+

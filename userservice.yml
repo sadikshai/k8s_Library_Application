@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: depuser
+  labels:
+    app: deployment  
+spec:
+  replicas: 1 
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  minReadySeconds: 10  
+  selector:
+    matchLabels:
+      app: serviceuser
+  template:
+    metadata:
+      name: userpod
+      labels:
+        app: serviceuser
+    spec:
+      containers:
+        - name: svuser
+          image: shaikkhajaibrahim/libuserssvc:1.0
+          envFrom:
+            - secretRef:
+                 name: usersvc-secrets
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              memory: "64Mi"  
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          livenessProbe:
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+            tcpSocket:
+              port: 8000
+          readinessProbe:
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+            httpGet:
+              path: /docs
+              port: 8000
+          startupProbe:
+            initialDelaySeconds: 2
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - ps aux | grep uvicorn
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svcuser
+spec:
+  selector:
+    app: serviceuser
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: 8000
