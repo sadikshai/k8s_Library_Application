@@ -189,3 +189,5 @@ kubectl delete -f ingress.yaml
 
 
 
+
+
